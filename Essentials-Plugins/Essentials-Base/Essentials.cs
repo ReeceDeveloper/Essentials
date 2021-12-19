@@ -34,6 +34,18 @@ namespace Oxide.Plugins  {
             
             [JsonProperty("(2). Enable server whitelisting?")]
             public bool WhitelistEnabled { get; set; }
+
+            [JsonProperty("(3). Enable server auto-broadcasts?")]
+            public bool BroadcastsEnabled { get; private set; }
+
+            [JsonProperty("(4). Set auto-broadcast interval.")]
+            public float BroadcastInterval { get; private set; } = 30.0f;
+
+            [JsonProperty("(5). Edit auto-broadcast messages.")]
+            public string[] BroadcastMessages { get; private set; } = {
+                "This is an example message without colour.",
+                "This is an example message [#FF0000]with[/#] colour."
+            };
         }
 
         private EssentialsConfig _config;
@@ -79,6 +91,9 @@ namespace Oxide.Plugins  {
             
             if(_config.WhitelistEnabled)
                 InitWhitelist();
+            
+            if(_config.BroadcastsEnabled)
+                InitAutoBroadcast();
 
             Puts("- Initialisation completed.");
         }
@@ -199,6 +214,29 @@ namespace Oxide.Plugins  {
         }
 
         #endregion Whitelist
+        
+        #region AutoBroadcast
+
+        private void InitAutoBroadcast() {
+            var arrayKey = 0; 
+            
+            if (_config.BroadcastMessages.Length == 0) {
+                Puts("- Auto-Broadcasting disabled, no messages present in configuration.");
+                return;
+            }
+            
+            timer.Every(_config.BroadcastInterval, () => {
+                server.Broadcast(_config.BroadcastMessages[arrayKey]);
+
+                arrayKey++;
+
+                if (arrayKey == _config.BroadcastMessages.Length) {
+                    arrayKey = 0;
+                }
+            });
+        }
+        
+        #endregion AutoBroadcast
 
         #endregion Essentials
     }
