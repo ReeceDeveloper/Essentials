@@ -19,6 +19,7 @@
 
 
 using Newtonsoft.Json;
+using System.Collections.Generic;
 
 namespace Oxide.Plugins  {
     [Info("Essentials", "ReeceDeveloper", "1.0.0")]
@@ -30,6 +31,9 @@ namespace Oxide.Plugins  {
         private class EssentialsConfig {
             [JsonProperty("(1). Enable the Essentials plugin?")]
             public bool PluginEnabled { get; private set; } = true;
+            
+            [JsonProperty("(2). Enable server whitelisting?")]
+            public bool WhitelistEnabled { get; private set; }
         }
 
         private EssentialsConfig _config;
@@ -42,19 +46,27 @@ namespace Oxide.Plugins  {
 
         #region Localisation
 
-        // Localisation configuration goes here.
+        protected override void LoadDefaultMessages() {
+            lang.RegisterMessages(new Dictionary<string, string> {
+                // Whitelist.
+                ["WhitelistDenyEvent"] = "You are not whitelisted on this server."
+            }, this);
+        }
         
         #endregion Localisation
 
         #region Initialisation
 
-        void Init() {
+        private void Init() {
             _config = Config.ReadObject<EssentialsConfig>();
 
             if (!_config.PluginEnabled) {
                 Puts("- Currently disabled via the Configuration file.");
                 return;
             }
+            
+            if(_config.WhitelistEnabled)
+                InitWhitelist();
 
             Puts("- Initialisation completed.");
         }
@@ -63,7 +75,7 @@ namespace Oxide.Plugins  {
         
         #region Uninitialisation
 
-        void Unload() {
+        private void Unload() {
             Puts("- Unloading completed.");
         }
         
@@ -71,8 +83,35 @@ namespace Oxide.Plugins  {
 
         #region Essentials
 
-        // Individual plugin modules go here.
-        
+        #region Whitelist
+
+        private const string WhitelistPerm = "essentials.whitelist.allow";
+
+        private void InitWhitelist() {
+            permission.RegisterPermission(WhitelistPerm, this);
+
+            Puts("- Whitelisting is currently enabled.");
+        }
+
+        private bool IsWhitelisted(string playerId) {
+            var player = players.FindPlayerById(playerId);
+
+            return player != null && permission.UserHasPermission(playerId, WhitelistPerm);
+        }
+
+        private object CanUserLogin(string name, string id) {
+            if (!_config.WhitelistEnabled)
+                return null;
+
+            if (IsWhitelisted(id)) {
+                return null;
+            }
+
+            return lang.GetMessage("WhitelistDenyEvent", this);
+        }
+
+        #endregion Whitelist
+
         #endregion Essentials
     }
     
