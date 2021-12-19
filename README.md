@@ -5,7 +5,7 @@ improve both the experience of server administration and gameplay within the gam
 
 ## Dependencies
 
-* [RustDedicated_Data/Managed](Dependencies)
+* [RustDedicated_Data/Managed](Rust-Dependencies)
 * [OxideMod/uMod](https://umod.org/)
 
 ## Links and Information
