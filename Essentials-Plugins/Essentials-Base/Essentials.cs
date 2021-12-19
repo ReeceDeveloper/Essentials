@@ -17,8 +17,8 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-
 using Newtonsoft.Json;
+using Oxide.Core.Libraries.Covalence;
 using System.Collections.Generic;
 
 namespace Oxide.Plugins  {
@@ -33,7 +33,7 @@ namespace Oxide.Plugins  {
             public bool PluginEnabled { get; private set; } = true;
             
             [JsonProperty("(2). Enable server whitelisting?")]
-            public bool WhitelistEnabled { get; private set; }
+            public bool WhitelistEnabled { get; set; }
         }
 
         private EssentialsConfig _config;
@@ -48,8 +48,20 @@ namespace Oxide.Plugins  {
 
         protected override void LoadDefaultMessages() {
             lang.RegisterMessages(new Dictionary<string, string> {
+                // General.
+                ["PluginReloadEvent"] = "Essentials will now reload.",
+                ["PermissionDeniedEvent"] = "You do not have permission to use this command.",
+                ["InsufficientArgsEvent"] = "You did not provide enough arguments.",
+                ["InvalidArgsEvent"] = "One or more of your arguments was invalid.",
+                ["PlayerNotFoundEvent"] = "Could not find {0}.",
+                ["Disabled"] = "Disabled",
+                ["Enabled"] = "Enabled",
+
                 // Whitelist.
-                ["WhitelistDenyEvent"] = "You are not whitelisted on this server."
+                ["WhitelistDenyEvent"] = "You are not whitelisted on this server.",
+                ["WhitelistToggleEvent"] = "Whitelisting has now been {0}.",
+                ["WhitelistRemoveEvent"] = "{0} was removed from the whitelist.",
+                ["WhitelistAddEvent"] = "{0} was added to the whitelist."
             }, this);
         }
         
@@ -86,11 +98,87 @@ namespace Oxide.Plugins  {
         #region Whitelist
 
         private const string WhitelistPerm = "essentials.whitelist.allow";
+        private const string WhitelistAdmin = "essentials.admin.whitelist";
 
         private void InitWhitelist() {
             permission.RegisterPermission(WhitelistPerm, this);
+            permission.RegisterPermission(WhitelistAdmin, this);
 
             Puts("- Whitelisting is currently enabled.");
+        }
+
+        [Command("whitelist")]
+        private void WhitelistCmd(IPlayer player, string cmd, string[] args) {
+            if (!player.HasPermission(WhitelistAdmin)) {
+                player.Message(lang.GetMessage("PermissionDeniedEvent", this));
+                return;
+            }
+
+            if (args.IsEmpty()) {
+                player.Message(lang.GetMessage("InsufficientArgsEvent", this));
+                return;
+            }
+
+            switch (args[0]) {
+                case "toggle": {
+                    _config.WhitelistEnabled = _config.WhitelistEnabled
+                        ? _config.WhitelistEnabled = false
+                        : _config.WhitelistEnabled = true;
+
+                    var message = lang.GetMessage("WhitelistToggleEvent", this);
+                    
+                    player.Message(string.Format(message, _config.WhitelistEnabled 
+                        ? lang.GetMessage("Enabled", this).ToLower() 
+                        : lang.GetMessage("Disabled", this).ToLower()));
+                    
+                    Config.WriteObject(_config, true);
+                    
+                    player.Message(lang.GetMessage("PluginReloadEvent", this));
+                    
+                    server.Command("oxide.reload Essentials");
+                    
+                    break;
+                } case "add": {
+                    if (args.Length < 2) {
+                        player.Message(lang.GetMessage("InsufficientArgsEvent", this));
+                        break;
+                    }
+
+                    var selectedPlayer = players.FindPlayer(args[1]);
+
+                    if (selectedPlayer == null) {
+                        player.Message(string.Format(lang.GetMessage("PlayerNotFoundEvent", this), args[1]));
+                        break;
+                    }
+                    
+                    selectedPlayer.GrantPermission(WhitelistPerm);
+                    
+                    player.Message(string.Format(lang.GetMessage("WhitelistAddEvent", this), selectedPlayer.Name));
+                    
+                    break;
+                } case "remove": {
+                    if (args.Length < 2) {
+                        player.Message(lang.GetMessage("InsufficientArgsEvent", this));
+                        break;
+                    }
+
+                    var selectedPlayer = players.FindPlayer(args[1]);
+                    
+                    if (selectedPlayer == null) {
+                        player.Message(string.Format(lang.GetMessage("PlayerNotFoundEvent", this), args[1]));
+                        break;
+                    }
+                    
+                    selectedPlayer.RevokePermission(WhitelistPerm);
+                    
+                    player.Message(string.Format(lang.GetMessage("WhitelistRemoveEvent", this), selectedPlayer.Name));
+                    
+                    break;
+                } default: {
+                  player.Message(lang.GetMessage("InvalidArgsEvent", this));
+                  break;
+                }
+            }
         }
 
         private bool IsWhitelisted(string playerId) {
@@ -107,7 +195,7 @@ namespace Oxide.Plugins  {
                 return null;
             }
 
-            return lang.GetMessage("WhitelistDenyEvent", this);
+            return IsWhitelisted(id) ? null : lang.GetMessage("WhitelistDenyEvent", this);
         }
 
         #endregion Whitelist
