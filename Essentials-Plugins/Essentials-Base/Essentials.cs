@@ -217,13 +217,15 @@ namespace Oxide.Plugins  {
         
         #region AutoBroadcast
 
+        // 21 December 2021 - AutoBroadcast may be moved to Essentials-Chat.
+        
         private void InitAutoBroadcast() {
-            var arrayKey = 0; 
-            
             if (_config.BroadcastMessages.Length == 0) {
                 Puts("- Auto-Broadcasting disabled, no messages present in configuration.");
                 return;
             }
+            
+            var arrayKey = 0; 
             
             timer.Every(_config.BroadcastInterval, () => {
                 server.Broadcast(_config.BroadcastMessages[arrayKey]);
@@ -236,6 +238,8 @@ namespace Oxide.Plugins  {
             });
         }
         
+        // If requested, add an in-game command to edit auto-broadcast settings.
+
         #endregion AutoBroadcast
 
         #endregion Essentials
