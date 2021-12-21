@@ -214,20 +214,9 @@ namespace Oxide.Plugins  {
             return player != null && permission.UserHasPermission(playerId, WhitelistPerm);
         }
 
-        private object CanUserLogin(string name, string id) {
-            if (!_config.WhitelistEnabled)
-                return null;
-
-            if (IsWhitelisted(id)) {
-                return null;
-            }
-
-            return IsWhitelisted(id) ? null : lang.GetMessage("WhitelistDenyEvent", this);
-        }
-
         #endregion Whitelist
         
-        #region AutoBroadcast
+        #region Auto Broadcast
 
         // 21 December 2021 - AutoBroadcast may be moved to Essentials-Chat.
         
@@ -252,39 +241,49 @@ namespace Oxide.Plugins  {
 
         // If requested, add an in-game command to edit auto-broadcast settings.
 
-        #endregion AutoBroadcast
+        #endregion Auto Broadcast
 
-        #region JoinLeaveMessages
+        #region Rust Hooks
 
-        // 21 December 2021 - JoinLeaveMessages may be moved to Essentials-Chat.
+        private object CanUserLogin(string name, string id) {
+            #region Whitelist
 
-        // 21 December 2021 - TODO: Once Vanish and other features are implemented, add bypass permissions for this.
+            if (!_config.WhitelistEnabled)
+                return null;
 
-        #region JoinMessages
+            if (IsWhitelisted(id))
+                return null;
+
+            return IsWhitelisted(id) ? null : lang.GetMessage("WhitelistDenyEvent", this);
+
+            #endregion Whitelist
+        }
 
         private void OnPlayerConnected(BasePlayer player) {
+            #region Join Messages
+
             // 21 December 2021 - TODO: Add a check to see if a player joining left whilst in Vanish.
 
             if (_config.JoinMessagesEnabled) {
                 server.Broadcast(string.Format(lang.GetMessage("JoinMessageEvent", this), player.displayName));
             }
+
+            #endregion Join Messages
         }
 
-        #endregion JoinMessages
-
-        #region LeaveMessages
-
         private void OnPlayerDisconnected(BasePlayer player, string reason) {
+            #region Leave Messages
+
             // 21 December 2021 - TODO: Add a check to see if a player leaving was in Vanish.
 
             if (_config.LeaveMessagesEnabled) {
                 server.Broadcast(string.Format(lang.GetMessage("LeaveMessageEvent", this), player.displayName));
             }
+
+            #endregion Leave Messages
         }
 
-        #endregion LeaveMessages
-
-        #endregion JoinLeaveMessages
+        #endregion Rust Hooks
 
         #endregion Essentials
     }
