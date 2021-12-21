@@ -46,6 +46,12 @@ namespace Oxide.Plugins  {
                 "This is an example message without colour.",
                 "This is an example message [#FF0000]with[/#] colour."
             };
+
+            [JsonProperty("(6). Enable player join messages?")]
+            public bool JoinMessagesEnabled { get; private set; }
+
+            [JsonProperty("(7). Enable player leave messages?")]
+            public bool LeaveMessagesEnabled { get; private set; }
         }
 
         private EssentialsConfig _config;
@@ -73,7 +79,13 @@ namespace Oxide.Plugins  {
                 ["WhitelistDenyEvent"] = "You are not whitelisted on this server.",
                 ["WhitelistToggleEvent"] = "Whitelisting has now been {0}.",
                 ["WhitelistRemoveEvent"] = "{0} was removed from the whitelist.",
-                ["WhitelistAddEvent"] = "{0} was added to the whitelist."
+                ["WhitelistAddEvent"] = "{0} was added to the whitelist.",
+
+                // Join Messages.
+                ["JoinMessageEvent"] = "{0} has joined the server.",
+
+                // Leave Messages.
+                ["LeaveMessageEvent"] = "{0} has left the server."
             }, this);
         }
         
@@ -237,12 +249,44 @@ namespace Oxide.Plugins  {
                 }
             });
         }
-        
+
         // If requested, add an in-game command to edit auto-broadcast settings.
 
         #endregion AutoBroadcast
 
+        #region JoinLeaveMessages
+
+        // 21 December 2021 - JoinLeaveMessages may be moved to Essentials-Chat.
+
+        // 21 December 2021 - TODO: Once Vanish and other features are implemented, add bypass permissions for this.
+
+        #region JoinMessages
+
+        private void OnPlayerConnected(BasePlayer player) {
+            // 21 December 2021 - TODO: Add a check to see if a player joining left whilst in Vanish.
+
+            if (_config.JoinMessagesEnabled) {
+                server.Broadcast(string.Format(lang.GetMessage("JoinMessageEvent", this), player.displayName));
+            }
+        }
+
+        #endregion JoinMessages
+
+        #region LeaveMessages
+
+        private void OnPlayerDisconnected(BasePlayer player, string reason) {
+            // 21 December 2021 - TODO: Add a check to see if a player leaving was in Vanish.
+
+            if (_config.LeaveMessagesEnabled) {
+                server.Broadcast(string.Format(lang.GetMessage("LeaveMessageEvent", this), player.displayName));
+            }
+        }
+
+        #endregion LeaveMessages
+
+        #endregion JoinLeaveMessages
+
         #endregion Essentials
     }
-    
+
 }
