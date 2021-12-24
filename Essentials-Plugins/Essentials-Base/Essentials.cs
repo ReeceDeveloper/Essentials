@@ -47,11 +47,26 @@ namespace Oxide.Plugins  {
                 "This is an example message [#FF0000]with[/#] colour."
             };
 
-            [JsonProperty("(6). Enable player join messages?")]
-            public bool JoinMessagesEnabled { get; private set; }
+            [JsonProperty("(6). Enable join and leave messages?")]
+            public bool JLMessagesEnabled { get; private set; }
 
-            [JsonProperty("(7). Enable player leave messages?")]
-            public bool LeaveMessagesEnabled { get; private set; }
+            [JsonProperty("(7). Enable a static (permanent) time?")]
+            public bool StaticTimeEnabled { get; private set; }
+
+            [JsonProperty("(8). Set the server's static time.")]
+            public int StaticTime { get; private set; } = 12;
+
+            [JsonProperty("(9). Set the passing rate of all time.")]
+            public double GlobalTimeRate { get; private set; } = 1.0;
+
+            [JsonProperty("(10). Set the passing rate of day time.")]
+            public double DayTimeRate { get; private set; } = 1.0;
+
+            [JsonProperty("(11). Set the passing rate of night time.")]
+            public double NightTimeRate { get; private set; } = 1.0;
+
+            [JsonProperty("(12). Announce when time rate changes?")]
+            public bool TimeRateAnnounceEnabled { get; private set; }
         }
 
         private EssentialsConfig _config;
@@ -107,6 +122,12 @@ namespace Oxide.Plugins  {
             if(_config.BroadcastsEnabled)
                 InitAutoBroadcast();
 
+            if (_config.JLMessagesEnabled)
+                InitJoinLeaveMessages();
+
+            if (_config.StaticTimeEnabled)
+                InitStaticTime();
+
             Puts("- Initialisation completed.");
         }
 
@@ -131,7 +152,7 @@ namespace Oxide.Plugins  {
             permission.RegisterPermission(WhitelistPerm, this);
             permission.RegisterPermission(WhitelistAdmin, this);
 
-            Puts("- Whitelisting is currently enabled.");
+            Puts("- Whitelisting is enabled.");
         }
 
         [Command("whitelist")]
@@ -216,15 +237,18 @@ namespace Oxide.Plugins  {
 
         #endregion Whitelist
         
-        #region Auto Broadcast
+        #region AutoBroadcast
 
-        // 21 December 2021 - AutoBroadcast may be moved to Essentials-Chat.
+        // 21 December 2021 - Auto Broadcast may be moved to Essentials-Chat.
         
         private void InitAutoBroadcast() {
             if (_config.BroadcastMessages.Length == 0) {
                 Puts("- Auto-Broadcasting disabled, no messages present in configuration.");
+
                 return;
             }
+
+            Puts("- Auto Broadcasting is enabled.");
             
             var arrayKey = 0; 
             
@@ -239,11 +263,61 @@ namespace Oxide.Plugins  {
             });
         }
 
-        // If requested, add an in-game command to edit auto-broadcast settings.
+        // If requested, add an in-game command to edit auto broadcast settings.
 
-        #endregion Auto Broadcast
+        #endregion AutoBroadcast
 
-        #region Rust Hooks
+        #region JoinLeaveMessages
+
+        // 21 December 2021 - Join and Leave messages may be moved to Essentials-Chat.
+
+        private const string bypassJoinLeave = "essentials.admin.bypassjl";
+
+        private void InitJoinLeaveMessages() {
+            permission.RegisterPermission(bypassJoinLeave, this);
+
+            Puts("- Join and Leave messages are enabled.");
+        }
+
+        #endregion JoinLeaveMessages
+
+        #region TimeManager
+
+        #region StaticTime
+
+        private void InitStaticTime() {
+            var time = UnityEngine.Object.FindObjectOfType<TOD_Time>();
+
+            time.ProgressTime = false;
+
+            server.Command($"env.time {_config.StaticTime}");
+        }
+
+        #endregion StaticTime
+
+        #region TimeSpeed
+
+        private readonly TOD_Time _time = TOD_Sky.Instance.Components.Time;
+        private readonly TOD_Sky _sky = TOD_Sky.Instance;
+
+        private void InitGlobalTimeRate() {
+            if(_sky == null) {
+                Puts("- Could not obtain an instance of TOD_Time.");
+
+                return;
+            }
+
+            _time.ProgressTime = true;
+            _time.UseTimeCurve = false;
+
+            // 23 December 2021 - Continue from here.
+        }
+
+        #endregion TimeSpeed
+
+        #endregion TimeManager
+
+        #region RustHooks
 
         private object CanUserLogin(string name, string id) {
             #region Whitelist
@@ -264,7 +338,11 @@ namespace Oxide.Plugins  {
 
             // 21 December 2021 - TODO: Add a check to see if a player joining left whilst in Vanish.
 
-            if (_config.JoinMessagesEnabled) {
+            if (_config.JLMessagesEnabled) {
+                if (player.IPlayer.HasPermission(bypassJoinLeave)) {
+                    return;
+                }
+
                 server.Broadcast(string.Format(lang.GetMessage("JoinMessageEvent", this), player.displayName));
             }
 
@@ -276,14 +354,18 @@ namespace Oxide.Plugins  {
 
             // 21 December 2021 - TODO: Add a check to see if a player leaving was in Vanish.
 
-            if (_config.LeaveMessagesEnabled) {
+            if (_config.JLMessagesEnabled) {
+                if (player.IPlayer.HasPermission(bypassJoinLeave)) {
+                    return;
+                }
+
                 server.Broadcast(string.Format(lang.GetMessage("LeaveMessageEvent", this), player.displayName));
             }
 
             #endregion Leave Messages
         }
 
-        #endregion Rust Hooks
+        #endregion RustHooks
 
         #endregion Essentials
     }
