@@ -55,18 +55,6 @@ namespace Oxide.Plugins  {
 
             [JsonProperty("(8). Set the server's static time.")]
             public int StaticTime { get; private set; } = 12;
-
-            [JsonProperty("(9). Set the passing rate of all time.")]
-            public double GlobalTimeRate { get; private set; } = 1.0;
-
-            [JsonProperty("(10). Set the passing rate of day time.")]
-            public double DayTimeRate { get; private set; } = 1.0;
-
-            [JsonProperty("(11). Set the passing rate of night time.")]
-            public double NightTimeRate { get; private set; } = 1.0;
-
-            [JsonProperty("(12). Announce when time rate changes?")]
-            public bool TimeRateAnnounceEnabled { get; private set; }
         }
 
         private EssentialsConfig _config;
@@ -281,41 +269,23 @@ namespace Oxide.Plugins  {
 
         #endregion JoinLeaveMessages
 
-        #region TimeManager
-
         #region StaticTime
 
         private void InitStaticTime() {
-            var time = UnityEngine.Object.FindObjectOfType<TOD_Time>();
+            TOD_Time _time = TOD_Sky.Instance.Components.Time;
 
-            time.ProgressTime = false;
-
-            server.Command($"env.time {_config.StaticTime}");
-        }
-
-        #endregion StaticTime
-
-        #region TimeSpeed
-
-        private readonly TOD_Time _time = TOD_Sky.Instance.Components.Time;
-        private readonly TOD_Sky _sky = TOD_Sky.Instance;
-
-        private void InitGlobalTimeRate() {
-            if(_sky == null) {
+            if (_time == null) {
                 Puts("- Could not obtain an instance of TOD_Time.");
 
                 return;
             }
 
-            _time.ProgressTime = true;
-            _time.UseTimeCurve = false;
+            _time.ProgressTime = false;
 
-            // 23 December 2021 - Continue from here.
+            server.Command($"env.time {_config.StaticTime}");
         }
 
-        #endregion TimeSpeed
-
-        #endregion TimeManager
+        #endregion StaticTime
 
         #region RustHooks
 
@@ -334,7 +304,7 @@ namespace Oxide.Plugins  {
         }
 
         private void OnPlayerConnected(BasePlayer player) {
-            #region Join Messages
+            #region JoinMessages
 
             // 21 December 2021 - TODO: Add a check to see if a player joining left whilst in Vanish.
 
@@ -346,11 +316,11 @@ namespace Oxide.Plugins  {
                 server.Broadcast(string.Format(lang.GetMessage("JoinMessageEvent", this), player.displayName));
             }
 
-            #endregion Join Messages
+            #endregion JoinMessages
         }
 
         private void OnPlayerDisconnected(BasePlayer player, string reason) {
-            #region Leave Messages
+            #region LeaveMessages
 
             // 21 December 2021 - TODO: Add a check to see if a player leaving was in Vanish.
 
@@ -362,7 +332,7 @@ namespace Oxide.Plugins  {
                 server.Broadcast(string.Format(lang.GetMessage("LeaveMessageEvent", this), player.displayName));
             }
 
-            #endregion Leave Messages
+            #endregion LeaveMessages
         }
 
         #endregion RustHooks
