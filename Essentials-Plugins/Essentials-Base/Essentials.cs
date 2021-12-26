@@ -143,7 +143,7 @@ namespace Oxide.Plugins  {
             Puts("- Whitelisting is enabled.");
         }
 
-        [Command("whitelist")]
+        [Command("whitelist", "ewhitelist", "essentials:whitelist")]
         private void WhitelistCmd(IPlayer player, string cmd, string[] args) {
             if (!player.HasPermission(WhitelistAdmin)) {
                 player.Message(lang.GetMessage("PermissionDeniedEvent", this));
